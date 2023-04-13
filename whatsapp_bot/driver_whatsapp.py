@@ -4,6 +4,7 @@ import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from fake_useragent import UserAgent
 
 from .df_utils import *
 
@@ -116,8 +117,8 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     if google_drive==True:
         ua = UserAgent()
         user_agent = ua.chrome
-        options.add_argument(f'user-agent={user_agent}') ##
-        options.add_argument('--headless') ##
+        options.add_argument(f'user-agent={user_agent}') 
+        options.add_argument('--headless') 
     
     driver=webdriver.Chrome('chromedriver',options=options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
@@ -155,3 +156,4 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         df.loc[index, 'envio'] = 1
         
     driver.quit()
+    return df
