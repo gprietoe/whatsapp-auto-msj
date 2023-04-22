@@ -55,7 +55,11 @@ def type_message(driver_ser, delay_list, df_sms):
     hidden_element = driver_ser.find_element(By.XPATH,"//div[@class='flex-grow h-screen main-content']/div[@class='fullwidth-container chat-container']/div[@data-react-class='v2/Chat']")
     driver_ser.execute_script("arguments[0].style.visibility = 'visible';", hidden_element)
     
-    text_m=hidden_element.find_element(By.XPATH,"//textarea[@placeholder='Type a message']")
+    try:
+        text_m=hidden_element.find_element(By.XPATH,"//textarea[@placeholder='Type a message']")
+    except:
+        text_m=hidden_element.find_element(By.XPATH,"//textarea[@placeholder='Escribe un mensaje']")
+      
     text_m.clear()
     time.sleep(delay_list[4])
     
