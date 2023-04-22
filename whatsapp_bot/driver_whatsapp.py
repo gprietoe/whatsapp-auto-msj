@@ -4,7 +4,7 @@ import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from fake_useragent import UserAgent
+
 
 from .df_utils import *
 
@@ -63,8 +63,34 @@ def type_message(driver_ser, delay_list, df_sms):
         sms_un=df_sms.iloc[p,0]
         send_each_text(html=text_m, sms_to_send=sms_un, delay=delay_list)
 
+def select_tag(driver_ser, estado=None):
+    short_delay_loop = delay_list(1.5, 2.5, 4)
+    time.sleep(short_delay_loop[0])
+    close_notification= driver_ser.find_element(By.XPATH,"//div[@class='flex-grow h-screen main-content']//button[@class='Toastify__close-button Toastify__close-button--default']").click()
+    # clinking on the tags
+    hidden_element = driver_ser.find_element(By.XPATH,"//div[@class='flex-grow h-screen main-content']/div[@class='fullwidth-container chat-container']/div[@data-react-class='v2/Chat']")
+    driver_ser.execute_script("arguments[0].style.visibility = 'visible';", hidden_element)
+    
+    tag1=driver_ser.find_elements(By.XPATH,"//div[@class='chat-container_tags-top-bar shadow rounded-t-lg bg-white dark:bg-dark-800 px-4 py-4']//div[@class='flex flex-row']/div[@class='mx-1']")[1]
+    
+    time.sleep(short_delay_loop[1])
+    tag_click=tag1.find_elements(By.XPATH,"//div[@class='mx-1']")[1].click()
+    #tag_click2=tag_click.find_element(By.XPATH,"//span[@class=' text-gray-400 dark:text-dark-100 text  ']").click()
+    time.sleep(short_delay_loop[2])
+    
+    if estado=="PENDIENTE":
+        tag="SE_PENDIENTE"
+        tag_name="//body//div[@class='css-10xsswj-menu select__menu']//div[text()='"+tag+"']"        
+    else:
+        tag="SE_PROCESO"
+        tag_name="//body//div[@class='css-10xsswj-menu select__menu']//div[text()='"+tag+"']"
+    
+    tag2=tag1.find_element(By.XPATH,tag_name).click()
+    time.sleep(short_delay_loop[3])        
+        
 
-def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False):
+
+def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, estado_segui=None, tipologia_segui=None, first_report=False):
     '''
   #Docstring:
     Ejecuta el bot para el envio automático de mensajes de whatsapp usando el servicio de Callbell y los usuarios creados para Matrícula Digital.
@@ -95,11 +121,19 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     test: boolen, default False. Aplica en caso se desea hacer un test usando una BD de teléfonos de prueba.
     
     '''
-    ## directivos' data
-    df=open_directivos_EBR(url=url_bd, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test)
-    print("El número de filas de la BD es: ", df.count()[0])
-    ## getting the messages from data located on google drive
-    df1=get_excel_txt(url_sms)
+    if seguimiento==True:
+        estado_c=estado_segui.upper().strip().replace("EN ","")
+        df=cleaning_report_status_df(url=url_bd, estado=estado_c, tipologia=tipologia_segui,var_start=var_start, var_end=var_end,test=test,first_rep=first_report)
+        print("El número de filas de la BD es: ", df.count()[0])
+        ## getting the messages from data located on google drive
+        df1=get_excel_txt(url=url_sms, seguimiento_text=seguimiento, estado=estado_c, tipologia=tipologia_segui)
+        
+    else:
+        ## directivos' data
+        df=open_directivos_EBR(url=url_bd, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test)
+        print("El número de filas de la BD es: ", df.count()[0])
+        ## getting the messages from data located on google drive
+        df1=get_excel_txt(url_sms)
     
     #setting the delay
     delay1=delay_list(3, 9, 4)
@@ -115,6 +149,7 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     options.add_experimental_option('useAutomationExtension', False)
 
     if google_drive==True:
+        from fake_useragent import UserAgent
         ua = UserAgent()
         user_agent = ua.chrome
         options.add_argument(f'user-agent={user_agent}') 
@@ -135,14 +170,14 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     ## create a loop to itterate through the phone number list
     for index, phone_number in df.phone_numbers.items():
         ## set a delay list for each itteration
-        delay2=delay_list(3, 6, 7)
+        delay2=delay_list(2.5, 5.5, 7)
 
         enter_phone_number(driver_ser=driver,phone_number=phone_number, delay_l=delay2, index_loop=index)
         
         try:
-            open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='modal_content-body']//span[@class='mr-2  text  ']")
+            open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='modal_content-body']//span[@class='mr-2  text  ']").click()
         except:
-            if user=="gestionmatricula@gmail.com": ## only the head account can open an existing chat
+            if user in ["gestionmatricula@gmail.com","whatsappoperador1@gmail.com","whatsappoperador2@gmail.com"]: ## only the head account can open an existing chat
                 open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='modal_content-body']//div[@class='text-sm']").click()
             else:                                  ## for everyone else if the chat is created bot'd skip this step and it will continue with the next phone_number
                 open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='flex flex-row items-center w-full justify-between mb-4']//div[@class='items-center   ']").click()
@@ -152,7 +187,10 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         time.sleep(delay2[2])
 
         type_message(driver_ser=driver, delay_list=delay2, df_sms=df1)
-
+        
+        if seguimiento==True:
+            select_tag(driver_ser=driver, estado=estado_c)
+            
         df.loc[index, 'envio'] = 1
         
     driver.quit()
