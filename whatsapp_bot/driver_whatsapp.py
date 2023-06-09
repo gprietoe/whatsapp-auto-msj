@@ -127,7 +127,7 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     '''
     if seguimiento==True:
         estado_c=estado_segui.upper().strip().replace("EN ","")
-        df=cleaning_report_status_df(url=url_bd, estado=estado_c, tipologia=tipologia_segui,var_start=var_start, var_end=var_end,test=test,first_rep=first_report)
+        df=cleaning_report_status_df(url=url_bd, estado=estado_c, tipologia=tipologia_segui, var_start=var_start, var_end=var_end,test=test,first_rep=first_report)
         print("El número de filas de la BD es: ", df.count()[0])
         ## getting the messages from data located on google drive
         df1=get_excel_txt(url=url_sms, seguimiento_text=seguimiento, estado=estado_c, tipologia=tipologia_segui)
@@ -193,9 +193,12 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         type_message(driver_ser=driver, delay_list=delay2, df_sms=df1)
         
         if seguimiento==True:
-            select_tag(driver_ser=driver, estado=estado_c)
-            
-        df.loc[index, 'envio'] = 1
+            try:
+                select_tag(driver_ser=driver, estado=estado_c)
+            except:
+                df.loc[index, 'envio'] = 1
+        else:            
+            df.loc[index, 'envio'] = 1
         
     driver.quit()
     return df
