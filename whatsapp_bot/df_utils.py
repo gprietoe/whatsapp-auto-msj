@@ -64,21 +64,21 @@ def clean_numbers(df_o):
 
 def open_clean_var_seguimiento(url):
     text = url.rsplit('/', 1)[0]
-    df=pd.read_csv(text+"/export?format=csv", skiprows=1, usecols=[3,4,5,6,7,8,9,10,11,23,52,53,57,58,59], converters={3:str,5:str,6:str,7:str,8:str,9:str,10:str,11:str,52:str,53:str})
-    df.columns=['CODDRE','DRE','codooii','ugel','cod_local','cod_unico_0','cm_ini','cm_pri', 'cm_sec','alerta','phone_numbers','DNIDIRECTIVO','statusdes','sec_gen', 'sec_met']
+    df=pd.read_csv(text+"/export?format=csv", skiprows=1, usecols=[3,4,5,6,7,8,9,10,11,22,23,24,25,26,55,56,57,58,59], converters={3:str,5:str,6:str,7:str,8:str,9:str,10:str,11:str,55:str,56:str})
+    df.columns=['CODDRE','DRE','codooii','ugel','cod_local','cod_unico_0','cm_ini','cm_pri','cm_sec','sec_met','registrado','proceso','pendiente','alerta','phone_numbers','DNIDIRECTIVO','nombre','ape_p', 'ape_m']
     for p in ['cm_ini','cm_pri', 'cm_sec']:
         df[p]=df[p].replace("","0", regex=True)
     df["cod_unico"]=df.cm_ini+df.cm_pri+df.cm_sec+df.DNIDIRECTIVO
     df['alerta']=df['alerta'].str.upper().str.strip().replace("Í","I",regex=True)
-    
+    df['sec_met']=df['sec_met'].str.upper().str.strip().replace("Í","I",regex=True)
     return df
 
-def cleaning_report_status_df(url, estado, dre_name=None, ugel_cod=None, tipologia=None,var_start=None, var_end=None, test=False, first_rep=False):
+def cleaning_report_status_df(url, dre_name=None, ugel_cod=None, tipologia=None,var_start=None, var_end=None, test=False, first_rep=False):
     if test==True:
         df_3=url.copy()
     else:
         if first_rep==True:
-            df_3=open_clean_var_seguimiento(url)[['CODDRE', 'DRE', 'codooii','cod_unico','DNIDIRECTIVO','phone_numbers', 'statusdes','sec_gen', 'sec_met','alerta']].copy()
+            df_3=open_clean_var_seguimiento(url)[['CODDRE', 'DRE', 'codooii','cod_unico','DNIDIRECTIVO','phone_numbers','proceso', 'sec_met','alerta']].copy()
             df_3["envio"]=0
         else:
             df_3=url.query('envio==0').copy()
@@ -90,48 +90,33 @@ def cleaning_report_status_df(url, estado, dre_name=None, ugel_cod=None, tipolog
                 df_3=df_3[df_3.codooii==ugel_cod].copy()
             else:
                 df_3=df_3.copy()
+
+    ## creamos la tipologia
+    df_3['tipo']=0
+    df_3['tipo']=np.where((df_3.proceso==1) & (df_3.sec_met=="SI"), 1, df_3.tipo)
+    df_3['tipo']=np.where((df_3.proceso==1) & (df_3.sec_met=="NO"), 2, df_3.tipo)
+    df_3['tipo']=np.where((df_3.alerta=="SI"), 5, df_3.tipo)
+
+    df_3=df_3.query('tipo==@tipologia', engine='python')
         
-        if estado=="PENDIENTE":
-            df_3=df_3.query('statusdes==@estado', engine='python').copy()
-        if estado=="PROCESO":
-            ##creamos la tipología
-            df_3['tipo']=0
-            df_3['tipo']=np.where((df_3.sec_gen=="FALSO") &(df_3.sec_met=="VERDADERO"),1,df_3.tipo)
-            df_3['tipo']=np.where((df_3.sec_gen=="VERDADERO") &(df_3.sec_met=="FALSO"),2,df_3.tipo)
-            df_3['tipo']=np.where((df_3.sec_gen=="VERDADERO") &(df_3.sec_met=="VERDADERO"),3,df_3.tipo)
-            df_3['tipo']=np.where((df_3.alerta=="SI"), 4, df_3.tipo)
-            ## filtramos
-            df_3=df_3.query('statusdes==@estado & tipo==@tipologia', engine='python')
-        elif estado=="TODOS":
-            ##creamos la tipología
-            df_3['tipo']=0
-            df_3['tipo']=np.where((df_3.alerta=="SI"), 4, df_3.tipo)
-            ## filtramos
-            df_3=df_3.query('tipo==@tipologia', engine='python')
-            
-        
-        ## limpiamos los telefonos que no corresponden a números reales
-        df_3=clean_numbers(df_3).copy()     
-        df_3=df_3.sort_values("DNIDIRECTIVO").iloc[var_start:var_end].reset_index().rename({"index":"index_o"},axis=1)
+    ## limpiamos los telefonos que no corresponden a números reales
+    df_3=clean_numbers(df_3).copy()     
+    df_3=df_3.sort_values("DNIDIRECTIVO").iloc[var_start:var_end].reset_index().rename({"index":"index_o"},axis=1)
         
     return df_3
 
 
-def get_excel_txt(url, seguimiento_text=False, estado=None, tipologia=None):
+def get_excel_txt(url, seguimiento_text=False, tipologia=None):
     text = url.rsplit('/', 1)[0]
     if seguimiento_text==True:       
         ## cleaning the data
         df=pd.read_csv(text+"/export?format=csv"+"&gid="+str(1620900866))
         df['enviar']=df['enviar'].str.upper().str.strip().replace(["Ï","Í","Ì"],"I",regex=True)
-        if estado=="PENDIENTE":
-            df['Estado']=df['Estado'].str.upper().str.strip()
-            df=df[(df.Estado==estado)&(df.enviar=='SI')].copy()
-        if estado=="TODOS":
-            df=df[(df.Tipologia==str(tipologia))&(df.enviar=='SI')].copy()
-        else:            
-            df=df[(df.Tipologia==str(tipologia))&(df.enviar=='SI')].copy()
-            if tipologia ==0:
-                df=df.iloc[0:1]
+        
+        df=df[(df.Tipologia==str(tipologia))&(df.enviar=='SI')].copy()
+        
+        if tipologia ==0:
+            df=df.iloc[0:1]
         
         df["text"]=df["text"]+" \n"
         df=df.iloc[:,4:].copy()

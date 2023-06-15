@@ -94,7 +94,7 @@ def select_tag(driver_ser, estado=None):
         
 
 
-def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, estado_segui=None, tipologia_segui=None, first_report=False):
+def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, tipologia_segui=None, first_report=False):
     '''
   #Docstring:
     Ejecuta el bot para el envio automático de mensajes de whatsapp usando el servicio de Callbell y los usuarios creados para Matrícula Digital.
@@ -126,11 +126,10 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     
     '''
     if seguimiento==True:
-        estado_c=estado_segui.upper().strip().replace("EN ","")
-        df=cleaning_report_status_df(url=url_bd, estado=estado_c, tipologia=tipologia_segui, var_start=var_start, var_end=var_end,test=test,first_rep=first_report)
+        df=cleaning_report_status_df(url=url_bd, tipologia=tipologia_segui, var_start=var_start, var_end=var_end, test=test,first_rep=first_report)
         print("El número de filas de la BD es: ", df.count()[0])
         ## getting the messages from data located on google drive
-        df1=get_excel_txt(url=url_sms, seguimiento_text=seguimiento, estado=estado_c, tipologia=tipologia_segui)
+        df1=get_excel_txt(url=url_sms, seguimiento_text=seguimiento, tipologia=tipologia_segui)
         
     else:
         ## directivos' data
@@ -159,7 +158,8 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         options.add_argument(f'user-agent={user_agent}') 
         options.add_argument('--headless') 
     
-    driver=webdriver.Chrome('chromedriver',options=options)
+    # driver=webdriver.Chrome('chromedriver',options=options)
+    driver=webdriver.Chrome(options=options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
     url_service='https://dash.callbell.eu/users/sign_in'
@@ -181,7 +181,7 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         try:
             open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='modal_content-body']//span[@class='mr-2  text  ']").click()
         except:
-            if user in ["gestionmatricula@gmail.com","whatsappoperador1@gmail.com","whatsappoperador2@gmail.com"]: ## only the head account can open an existing chat
+            if user in ["gestionmatricula@gmail.com","whatsappoperador1@gmail.com","whatsappoperador2@gmail.com","whatsappoperador3@gmail.com","whatsappoperador4@gmail.com","whatsappoperador5@gmail.com","whatsappoperador6@gmail.com"]: ## only the head account can open an existing chat
                 open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='modal_content-body']//div[@class='text-sm']").click()
             else:                                  ## for everyone else if the chat is created bot'd skip this step and it will continue with the next phone_number
                 open_wi= driver.find_element(By.XPATH,"//div[@class='modal overflow-visible']//div[@class='flex flex-row items-center w-full justify-between mb-4']//div[@class='items-center   ']").click()
