@@ -94,7 +94,7 @@ def select_tag(driver_ser, estado=None):
         
 
 
-def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, tipologia_segui=None, first_report=False):
+def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, familias=False, tipologia_segui=None, first_report=False):
     '''
   #Docstring:
     Ejecuta el bot para el envio automático de mensajes de whatsapp usando el servicio de Callbell y los usuarios creados para Matrícula Digital.
@@ -126,10 +126,16 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     
     '''
     if seguimiento==True:
-        df=cleaning_report_status_df(url=url_bd, tipologia=tipologia_segui, var_start=var_start, var_end=var_end, test=test,first_rep=first_report)
+        df=cleaning_report_status_df(url=url_bd, tipologia=tipologia_segui, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test,first_rep=first_report)
         print("El número de filas de la BD es: ", df.count()[0])
         ## getting the messages from data located on google drive
         df1=get_excel_txt(url=url_sms, seguimiento_text=seguimiento, tipologia=tipologia_segui)
+    
+    elif familias==True:
+        df=open_family(url=url_bd, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test,tipologia=tipologia_segui)
+        print("El número de filas de la BD es: ", df.count()[0])
+        ## getting the messages from data located on google drive
+        df1=get_excel_txt(url=url_sms, familias_wa=familias, tipologia=tipologia_segui)
         
     else:
         ## directivos' data
@@ -154,7 +160,8 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
     if google_drive==True:
         from fake_useragent import UserAgent
         ua = UserAgent()
-        user_agent = ua.chrome
+        # user_agent = ua.chrome
+        user_agent = ua.firefox
         options.add_argument(f'user-agent={user_agent}') 
         options.add_argument('--headless') 
     
