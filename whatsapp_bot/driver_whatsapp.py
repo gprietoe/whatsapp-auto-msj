@@ -33,15 +33,47 @@ def callbell_login(driver_ser, url_service, user=None, pass_user=None, delay=Non
     return driver_ser
 
 def enter_phone_number(driver_ser, phone_number, delay_l, index_loop):   
-    ## new message
-    messaging_icon = driver_ser.find_element(By.XPATH,"//div[@class='fullwidth-container chat-container']//div[@class='mr-4']").click()
+    # Wait for the element with class "mr-4" to be clickable 
+    try:
+        element = WebDriverWait(driver_ser, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='fullwidth-container chat-container']//div[@class='mr-4']")))
+        driver_ser.execute_script("arguments[0].scrollIntoView();", element)
+        element.click()
+    except:
+      try:
+        blocking_element = driver_ser.find_element(By.XPATH, "//nav[@class='main-sidebar flex h-screen']")
+        driver_ser.execute_script("arguments[0].style.visibility='hidden';", blocking_element)
+      
+        element = WebDriverWait(driver_ser, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='fullwidth-container chat-container']//div[@class='mr-4']")))
+        element.click()
+      except:
+        try:
+            blocking_element = driver_ser.find_element(By.XPATH, "//div[@class='flex flex-col text-white w-full text-sm']")
+            driver_ser.execute_script("arguments[0].style.visibility='hidden';", blocking_element)
+      
+            element = WebDriverWait(driver_ser, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='fullwidth-container chat-container']//div[@class='mr-4']")))
+            element.click()
+        except:
+          try:
+            blocking_element = driver_ser.find_element(By.XPATH, "//div[@class='flex flex-col text-white w-full text-sm']//div[@class='p-4 mb-8']")
+            driver_ser.execute_script("arguments[0].style.visibility='hidden';", blocking_element)
+            element = WebDriverWait(driver_ser, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='fullwidth-container chat-container']//div[@class='mr-4']")))
+            element.click()
+          except:
+              blocking_element = driver_ser.find_element(By.XPATH, "//div[@class='flex flex-col text-white w-full text-sm']//div[@class='p-4 mb-8']//img[@class='block']")
+              driver_ser.execute_script("arguments[0].style.visibility='hidden';", blocking_element)
+              
+              element = WebDriverWait(driver_ser, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='fullwidth-container chat-container']//div[@class='mr-4']")))
+              element.click()
+        
     time.sleep(delay_l[0])
     number_s = driver_ser.find_element(By.ID, 'phone-form-control')
     number_s.clear()
+    
     if index_loop==0:
         number_s.send_keys('51'+str(phone_number))
     else:
         number_s.send_keys(str(phone_number))
+    
     time.sleep(delay_l[1])
     
     return
@@ -94,7 +126,7 @@ def select_tag(driver_ser, estado=None):
         
 
 
-def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, familias=False, tipologia_segui=None, first_report=False):
+def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, var_end=None, user=None, pass_user=None, google_drive=False, test=False, seguimiento=False, familias=False, tipologia_segui=None, first_report=False, gid=None):
     '''
   #Docstring:
     Ejecuta el bot para el envio automático de mensajes de whatsapp usando el servicio de Callbell y los usuarios creados para Matrícula Digital.
@@ -139,7 +171,7 @@ def execute_bot(url_bd, url_sms, dre_name=None, ugel_cod=None, var_start=None, v
         
     else:
         ## directivos' data
-        df=open_directivos_EBR(url=url_bd, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test)
+        df=open_directivos_EBR(url=url_bd, dre_name=dre_name, ugel_cod=ugel_cod, var_start=var_start, var_end=var_end, test=test, gid=gid)
         print("El número de filas de la BD es: ", df.count()[0])
         ## getting the messages from data located on google drive
         df1=get_excel_txt(url_sms)

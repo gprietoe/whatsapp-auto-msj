@@ -1,12 +1,16 @@
 import pandas as pd
 import numpy as np
 
-def open_directivos_EBR(url, dre_name=None, ugel_cod=None, var_start=None, var_end=None, test=False):
+def open_directivos_EBR(url, dre_name=None, ugel_cod=None, var_start=None, var_end=None, test=False, gid=None):
     if test==True:
         df=url.copy()
     else:
         text = url.rsplit('/', 1)[0]
-        df=pd.read_csv(text+"/export?format=csv", converters={0:str,1:str,"CODOOII":str})
+        if gid!=None:
+          df=pd.read_csv(text+"/export?format=csv"+"&gid="+str(gid))
+        else:
+          df=pd.read_csv(text+"/export?format=csv", converters={0:str,1:str,"CODOOII":str})
+        
         list_name=df.columns.str.lower().to_list()
         df.columns=list_name
 
@@ -18,6 +22,7 @@ def open_directivos_EBR(url, dre_name=None, ugel_cod=None, var_start=None, var_e
             else:
                 df=df.copy()
         df=df.sort_values("codooii").iloc[var_start:var_end].reset_index().rename({"index":"index_o"},axis=1)
+        df=clean_numbers(df)
     return df
 
 def open_family(url, dre_name=None, ugel_cod=None, var_start=None, var_end=None, test=False, tipologia=None):
@@ -90,11 +95,20 @@ def open_clean_var(url):
 
 def clean_numbers(df_o):
     df=df_o.copy()
+    if df.phone_numbers.dtype == "int64":
+        df["phone_numbers"]=df.phone_numbers.astype(str)
+    
+    elif df.phone_numbers.dtype == "float64":
+        df["phone_numbers"]=df.phone_numbers.astype(int).astype(str)
+    
     df["phone_l"]=df.phone_numbers.str.strip().str.len()
-    df=df.query('phone_l==9 & phone_numbers!="999999999" & phone_numbers!="123456789"', engine='python').copy()
+    df1=df.query('phone_l==9 & phone_numbers!="999999999" & phone_numbers!="123456789"', engine='python').copy()
     df['phone_numbers']=df['phone_numbers'].astype(int)
     del df["phone_l"]
-
+    
+    report_n=df.phone_numbers.count()-df1.phone_numbers.count()
+    print(f"Se eliminaron de la base de datos {report_n} números telefónicos inválidos")
+    
     return df
 
 def open_clean_var_seguimiento(url):
@@ -158,9 +172,6 @@ def get_excel_txt(url, seguimiento_text=False, tipologia=None, familias_wa=None)
         
         df=df[(df.Tipologia==str(tipologia))&(df.enviar=='SI')].copy()
         
-        # if tipologia ==0:
-        #     df=df.iloc[0:1]
-        
         df["text"]=df["text"]+" \n"
         df=df.iloc[:,4:].copy()
         
@@ -173,7 +184,6 @@ def get_excel_txt(url, seguimiento_text=False, tipologia=None, familias_wa=None)
         df=df.iloc[:,3:].copy()
         
     else:        
-        ## cleaning the data
         df=pd.read_csv(text+"/export?format=csv")
 
         df.columns=['text','enviar']
